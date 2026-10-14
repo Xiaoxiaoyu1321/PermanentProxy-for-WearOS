@@ -177,6 +177,7 @@ UserService 进程（uid = 2000 / 0）  ← 运行我们在 APK 里的 IShizukuS
 | 0 | 2026-10-14 | 仓库获取与分析 | 通过代理 clone 仓库；通读 `README.md`、`SendSingleCommand.kt`、`Constants.kt`、`MainActivity.kt`、`RequestPermissionActivity.kt`、`build.gradle`、Manifest；确认「提权依赖蓝牙 ADB」为致命限制 | ✅ |
 | 1 | 2026-10-14 | 需求登记 + 分支 | 创建 `dev` 分支；创建本 `flag.md`，登记全部输入、需求、技术方案 | ✅ |
 | 2 | 2026-10-14 | 构建现代化 + Shizuku 底层 | Gradle 6.1.1→8.10.2、AGP 4.0.0→8.5.2、Kotlin 1.3.72→1.9.24、去 jcenter、compileSdk 34、minSdk 23→24；`kotlin-android-extensions` → `findViewById`；`WearableActivity` → `ComponentActivity`；`com.android.support:wear` → `androidx.wear:wear:1.3.0`；`RemoteIntent` → `RemoteActivityHelper`；补齐本地 `color/black`、`color/grey`；**新增 Shizuku 底层**：`IShizukuShellService.aidl`、`ShellResult.kt`、`ShizukuShellService.kt`、`ShizukuManager.kt`、`ProxyManager.kt`。本地 `:wear:assembleDebug` 通过。commit `e4a54dd0` | ✅ |
+| 3 | 2026-10-14 | **通讯层切换为 Shizuku（核心改造）** | 删除 `SendSingleCommand.kt`、`adblib`、`commons-codec` repack jar、7272 端口常量、`EnableADBBluetoothActivity`、`OldWatchActivity`；新增 `ShizukuManager`（binder 跟踪 / 权限申请 / UserService 绑定 / `suspend exec`）、`ShizukuShellService` + AIDL + `ShellResult`（以 shell uid 2000 或 root uid 0 执行 `/system/bin/sh`）、`ProxyManager`（优先直写 `Settings.Global`，否则走 Shizuku shell）、`ShizukuSetupActivity`、`AdbFallbackActivity`、`PermanentProxyApp`、`signing.gradle` + 公开 release keystore；关闭代理不再强制重启（改为可选勾选）；UI 显示提权状态。本地 `:wear:assembleDebug/assembleRelease`、`:mobile:assembleRelease` 全部通过，`apksigner verify` 通过。commit `dae765b4` | ✅ |
 
 ---
 
