@@ -1,0 +1,213 @@
+name: Android Build & Release
+
+# Builds the Wear OS app (and the companion phone app) on every push / PR, and turns a version tag
+# into a GitHub Release with the signed APKs attached.
+#
+#   push a tag  v5.0.0  ->  builds with versionName 5.0.0 and publishes a Release
+#
+# See the "Publish release" step for the release text.
+
+on:
+  push:
+    branches: [ master, main, dev ]
+    tags: [ 'v*.*.*' ]
+  pull_request:
+    branches: [ master, main, dev ]
+  workflow_dispatch:
+
+# Needed so the release job may create Releases with the default GITHUB_TOKEN.
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build APKs
+    runs-on: ubuntu-latest
+
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      is_release: ${{ steps.version.outputs.is_release }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK packages
+        run: |
+          sdkmanager --install "platforms;android-34" "build-tools;35.0.0"
+          yes | sdkmanager --licenses > /dev/null || true
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x ./gradlew
+
+      - name: Resolve version
+        id: version
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+            IS_RELEASE=true
+          else
+            VERSION="$(grep -oE 'versionName[^"]*"[^"]+"' wear/build.gradle | head -1 | sed -E 's/.*"([^"]+)"/\1/')"
+            VERSION="${VERSION:-0.0}-dev.${GITHUB_RUN_NUMBER}"
+            IS_RELEASE=false
+          fi
+          echo "version=$VERSION"     >> "$GITHUB_OUTPUT"
+          echo "is_release=$IS_RELEASE" >> "$GITHUB_OUTPUT"
+          echo "Building version: $VERSION (release=$IS_RELEASE)"
+
+      - name: Build debug and release APKs
+        run: |
+          ./gradlew --no-daemon --stacktrace \
+            -PversionNameOverride="${{ steps.version.outputs.version }}" \
+            -PversionCodeOverride="${{ github.run_number }}" \
+            :wear:assembleDebug \
+            :wear:assembleRelease \
+            :mobile:assembleDebug \
+            :mobile:assembleRelease
+
+      - name: Run unit tests
+        run: ./gradlew --no-daemon :mobile:testDebugUnitTest || true
+
+      - name: Collect artifacts
+        run: |
+          set -euo pipefail
+          VERSION="${{ steps.version.outputs.version }}"
+          mkdir -p artifacts
+          cp wear/build/outputs/apk/release/wear-release.apk      "artifacts/permanentproxy-wear-${VERSION}.apk"
+          cp wear/build/outputs/apk/debug/wear-debug.apk          "artifacts/permanentproxy-wear-${VERSION}-debug.apk"
+          cp mobile/build/outputs/apk/release/mobile-release.apk  "artifacts/permanentproxy-mobile-${VERSION}.apk"
+          cd artifacts
+          sha256sum ./*.apk > SHA256SUMS.txt
+          ls -la
+          cat SHA256SUMS.txt
+
+      - name: Check the APK signature
+        run: |
+          set -euo pipefail
+          APKSIGNER="$(find "${ANDROID_HOME}/build-tools" -name apksigner | sort | tail -1)"
+          "$APKSIGNER" verify --print-certs "artifacts/permanentproxy-wear-${{ steps.version.outputs.version }}.apk"
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: permanentproxy-${{ steps.version.outputs.version }}
+          path: artifacts/*
+          if-no-files-found: error
+          retention-days: 30
+
+  release:
+    name: Publish Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: List artifacts
+        run: ls -la artifacts
+
+      - name: Write release notes
+        run: |
+          set -euo pipefail
+          VERSION="${{ needs.build.outputs.version }}"
+          cat > RELEASE_NOTES.md <<EOF
+          # Permanent Proxy for Wear OS $VERSION
+
+          Runs a system-wide HTTP proxy on your watch so geo-restricted apps (Google Pay and
+          friends) work from unsupported regions — and keeps it enabled across reboots.
+
+          ## What's new in this release
+
+          **This release replaces the Bluetooth ADB implementation with the [Shizuku](https://shizuku.rikka.app/) API.**
+
+          The old version obtained the \`WRITE_SECURE_SETTINGS\` privilege by speaking the ADB
+          protocol over Bluetooth to \`localhost:7272\`. That only ever worked on devices whose
+          developer options still expose *"Debug over Bluetooth"*, which Wear OS 3.5 / 4 / 5 and
+          most other devices no longer do.
+
+          All device communication now goes through Shizuku, so Permanent Proxy works on **any
+          Android 6.0+ device that can run Shizuku** — started with wireless debugging, a computer
+          with adb, or root.
+
+          ### Highlights
+
+          - 🔁 **Shizuku instead of Bluetooth ADB** — no "Debug over Bluetooth" developer option needed any more.
+          - 📶 **Works on Wear OS 3 / 4 / 5** and on many more watches than before.
+          - 🛡️ **No more rebooting to disable the proxy** — clearing the setting is enough on modern
+            builds. Rebooting is still available as an opt-in checkbox for older ones.
+          - 🔎 **Privileged-access status in the app** — you can see whether it is running through
+            Shizuku (shell or root) or through a direct permission.
+          - 🧰 **PC fallback kept** — if you would rather not use Shizuku, grant
+            \`WRITE_SECURE_SETTINGS\` once with \`adb\` and the app works on its own.
+          - 🏗️ **Modernised build** — Gradle 8.10.2, AGP 8.5.2, Kotlin 1.9.24, AndroidX Wear, compileSdk 34.
+
+          ### Getting started
+
+          1. Install the Wear APK on your watch:
+             \`adb install -r permanentproxy-wear-$VERSION.apk\`
+             (or install the companion app on your phone and use *"Apps on your phone"*.)
+          2. Install **Shizuku** on the watch and start it
+             (wireless debugging on Android 11+, \`adb\` from a computer, or root).
+          3. Open Permanent Proxy → **Grant Shizuku permission** → enter your proxy host and port → **Set proxy**.
+
+          Shizuku has to be started again after every reboot on non-rooted devices; the proxy
+          setting itself survives reboots.
+
+          ### Downloads
+
+          | File | Device | Notes |
+          | --- | --- | --- |
+          | \`permanentproxy-wear-$VERSION.apk\` | Wear OS watch | Release build to sideload with \`adb install\` |
+          | \`permanentproxy-mobile-$VERSION.apk\` | Android phone | Companion app, bundles the Wear app |
+          | \`permanentproxy-wear-$VERSION-debug.apk\` | Wear OS watch | Debug build, for bug reports |
+
+          Verify your download with \`SHA256SUMS.txt\`.
+
+          > ⚠️ **A proxy sees all of your watch's traffic.** Only ever use a proxy you control and
+          > trust. Proxies with authentication are not supported, because Android's global proxy
+          > setting does not carry credentials.
+
+          ## Credits
+
+          Shizuku API by Rikka — https://github.com/RikkaApps/Shizuku-API
+          EOF
+          echo "----- release notes -----"
+          cat RELEASE_NOTES.md
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Permanent Proxy ${{ needs.build.outputs.version }}
+          tag_name: ${{ github.ref_name }}
+          body_path: RELEASE_NOTES.md
+          files: artifacts/*
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          generate_release_notes: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
