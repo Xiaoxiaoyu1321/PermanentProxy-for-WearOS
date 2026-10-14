@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        These used to be provided by the old `com.android.support:wear` library. They are defined
+        here explicitly now that the project depends on AndroidX Wear only.
+    -->
+    <color name="black">#FF000000</color>
+    <color name="grey">#FF9E9E9E</color>
+</resources>

@@ -14,7 +14,7 @@ import androidx.core.content.edit
 import androidx.wear.activity.ConfirmationActivity
 import androidx.wear.activity.ConfirmationActivity.EXTRA_ANIMATION_TYPE
 import androidx.wear.activity.ConfirmationActivity.OPEN_ON_PHONE_ANIMATION
-import com.google.android.wearable.intent.RemoteIntent
+import androidx.wear.remote.interactions.RemoteActivityHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
@@ -137,13 +137,17 @@ object Constants {
     }
 
     fun Context.launchUrlOnPhone(url: String) {
-        RemoteIntent.startRemoteActivity(
-            this,
-            Intent(ACTION_VIEW)
-                .addCategory(CATEGORY_BROWSABLE)
-                .setData(Uri.parse(url)),
-            null
-        )
+        // RemoteIntent was removed from the shared wearable library; the AndroidX replacement is
+        // RemoteActivityHelper. It simply does nothing when no phone is connected.
+        try {
+            RemoteActivityHelper(this).startRemoteActivity(
+                Intent(ACTION_VIEW)
+                    .addCategory(CATEGORY_BROWSABLE)
+                    .setData(Uri.parse(url))
+            )
+        } catch (e: Exception) {
+            logE("Could not open the URL on the phone", e)
+        }
         startActivity(
             Intent(this, ConfirmationActivity::class.java)
                 .putExtra(EXTRA_ANIMATION_TYPE, OPEN_ON_PHONE_ANIMATION)

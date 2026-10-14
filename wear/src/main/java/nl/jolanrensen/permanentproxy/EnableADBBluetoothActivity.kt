@@ -1,15 +1,12 @@
 package nl.jolanrensen.permanentproxy
 
 import android.os.Bundle
-import android.support.wearable.activity.WearableActivity
+import androidx.activity.ComponentActivity
 
-class EnableADBBluetoothActivity : WearableActivity() {
+class EnableADBBluetoothActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_enable_adbbluetooth)
-
-        // Enables Always-on
-        setAmbientEnabled()
     }
 }

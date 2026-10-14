@@ -4,17 +4,19 @@ import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
-import android.support.wearable.activity.WearableActivity
+import android.widget.ProgressBar
+import android.widget.TextView
+import androidx.activity.ComponentActivity
 import androidx.core.view.isVisible
-import kotlinx.android.synthetic.main.activity_request_permission.*
 import nl.jolanrensen.permanentproxy.Constants.logE
 import nl.jolanrensen.permanentproxy.Constants.toastLong
 import kotlin.concurrent.thread
 
-class RequestPermissionActivity : WearableActivity() {
+class RequestPermissionActivity : ComponentActivity() {
 
     @Volatile
     var currentADBProcess: SendSingleCommand? = null
+
     @Volatile
     var stop = false
 
@@ -22,9 +24,10 @@ class RequestPermissionActivity : WearableActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_request_permission)
 
-        setAmbientEnabled()
+        val loadingBar = findViewById<ProgressBar>(R.id.loading_bar)
+        val tooLong = findViewById<TextView>(R.id.too_long)
 
-        cancel.setOnClickListener {
+        findViewById<TextView>(R.id.cancel).setOnClickListener {
             finish()
         }
 
@@ -68,14 +71,14 @@ class RequestPermissionActivity : WearableActivity() {
         thread(start = true) {
             var s = 0
             while (s <= 35 && !stop) {
-                loading_bar.progress = ((s / 35f) * 100f).toInt()
+                runOnUiThread { loadingBar.progress = ((s / 35f) * 100f).toInt() }
                 s++
                 Thread.sleep(1000)
             }
             runOnUiThread {
-                too_long.isVisible = true
-                too_long.setOnClickListener {
-                    startActivity(Intent(this, OldWatchActivity::class.java))
+                tooLong.isVisible = true
+                tooLong.setOnClickListener {
+                    startActivity(Intent(this@RequestPermissionActivity, OldWatchActivity::class.java))
                     finish()
                 }
             }

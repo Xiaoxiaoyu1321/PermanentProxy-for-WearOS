@@ -3,11 +3,15 @@ package nl.jolanrensen.permanentproxy
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
-import android.support.wearable.activity.WearableActivity
+import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
+import android.widget.EditText
+import android.widget.ScrollView
+import android.widget.TextView
+import androidx.activity.ComponentActivity
 import androidx.core.view.isVisible
 import androidx.core.widget.doOnTextChanged
-import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -18,14 +22,38 @@ import nl.jolanrensen.permanentproxy.Constants.startProxy
 import nl.jolanrensen.permanentproxy.Constants.stopProxy
 import nl.jolanrensen.permanentproxy.Constants.toastLong
 
-class MainActivity : WearableActivity() {
+class MainActivity : ComponentActivity() {
 
 
     private val PERMISSION = 23
 
+    private lateinit var status: TextView
+    private lateinit var extIp: TextView
+    private lateinit var showMeHow: TextView
+    private lateinit var requestPermission: TextView
+    private lateinit var setProxy: TextView
+    private lateinit var disableProxy: TextView
+    private lateinit var proxyAddress: TextView
+    private lateinit var proxyPort: TextView
+    private lateinit var addressInput: EditText
+    private lateinit var portInput: EditText
+    private lateinit var mainMenu: ViewGroup
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        status = findViewById(R.id.status)
+        extIp = findViewById(R.id.ext_ip)
+        showMeHow = findViewById(R.id.show_me_how)
+        requestPermission = findViewById(R.id.request_permission)
+        setProxy = findViewById(R.id.set_proxy)
+        disableProxy = findViewById(R.id.disable_proxy)
+        proxyAddress = findViewById(R.id.proxy_address)
+        proxyPort = findViewById(R.id.proxy_port)
+        addressInput = findViewById(R.id.address_input)
+        portInput = findViewById(R.id.port_input)
+        mainMenu = findViewById(R.id.main_menu)
 
         setupStatus(true)
 
@@ -49,9 +77,6 @@ class MainActivity : WearableActivity() {
 
          */
 
-        // Enables Always-on
-        setAmbientEnabled()
-
         // first check if app has permission to write Secure Settings, else ask to turn on adb over bluetooth
         if (checkCallingOrSelfPermission("android.permission.WRITE_SECURE_SETTINGS")
             == PackageManager.PERMISSION_GRANTED
@@ -59,13 +84,13 @@ class MainActivity : WearableActivity() {
             continueSetup()
         }
 
-        show_me_how.setOnClickListener {
+        showMeHow.setOnClickListener {
             startActivity(
                 Intent(this, EnableADBBluetoothActivity::class.java)
             )
         }
 
-        request_permission.setOnClickListener {
+        requestPermission.setOnClickListener {
             startActivityForResult(
                 Intent(this, RequestPermissionActivity::class.java),
                 PERMISSION
@@ -73,19 +98,19 @@ class MainActivity : WearableActivity() {
             onPause()
         }
 
-        donate.setOnClickListener {
+        findViewById<TextView>(R.id.donate).setOnClickListener {
             startActivity(
                 Intent(this, DonateActivity::class.java)
             )
         }
 
-        old_watch.setOnClickListener {
+        findViewById<TextView>(R.id.old_watch).setOnClickListener {
             startActivity(
                 Intent(this, OldWatchActivity::class.java)
             )
         }
 
-        scroll_view.requestFocus()
+        findViewById<ScrollView>(R.id.scroll_view).requestFocus()
     }
 
     private fun setupStatus(wait: Boolean = false): Boolean {
@@ -99,7 +124,7 @@ class MainActivity : WearableActivity() {
                 getCurrentIP { ip, country ->
                     logE("current IP is $ip, $country")
                     runOnUiThread {
-                        ext_ip.text =
+                        extIp.text =
                             if (ip == null) getString(R.string.NA) else "$ip, $country"
                     }
                 }
@@ -112,29 +137,29 @@ class MainActivity : WearableActivity() {
         getCurrentIP { ip, country ->
             logE("current IP is $ip, $country")
             runOnUiThread {
-                ext_ip.text = if (ip == null) getString(R.string.NA) else "$ip, $country"
+                extIp.text = if (ip == null) getString(R.string.NA) else "$ip, $country"
             }
         }
         return proxy != null
     }
 
     private fun updateSetProxyIsEnabled() {
-        set_proxy.isEnabled = address_input.text.isNotEmpty() && port_input.text.isNotEmpty()
+        setProxy.isEnabled = addressInput.text.isNotEmpty() && portInput.text.isNotEmpty()
     }
 
     private fun continueSetup() {
-        setAllEnabled(main_menu)
-        show_me_how.isVisible = false
-        request_permission.isVisible = false
+        setAllEnabled(mainMenu)
+        showMeHow.isVisible = false
+        requestPermission.isVisible = false
 
         val enabled: Boolean = setupStatus()
 
-        set_proxy.apply {
+        setProxy.apply {
             isVisible = true
 
             setOnClickListener {
-                val address = address_input.text.toString()
-                val port = port_input.text.toString().toInt()
+                val address = addressInput.text.toString()
+                val port = portInput.text.toString().toInt()
 
                 logE("setting proxy")
                 startProxy(
@@ -143,12 +168,12 @@ class MainActivity : WearableActivity() {
                     updateGooglePay = true
                 )
                 toastLong(getString(R.string.other_apps))
-                disable_proxy.isVisible = true
+                disableProxy.isVisible = true
                 setupStatus(wait = true)
             }
         }
 
-        disable_proxy.apply {
+        disableProxy.apply {
             isVisible = enabled
             setOnClickListener {
                 logE("turning off proxy")
@@ -163,18 +188,18 @@ class MainActivity : WearableActivity() {
             }
         }
 
-        proxy_address.isVisible = true
-        proxy_port.isVisible = true
+        proxyAddress.isVisible = true
+        proxyPort.isVisible = true
 
         val (currentAddress, currentPort) = currentProxy?.split(":") ?: listOf(null, null)
 
-        address_input.apply {
+        addressInput.apply {
             isVisible = true
             setText(currentAddress ?: "")
             doOnTextChanged { _, _, _, _ -> updateSetProxyIsEnabled() }
         }
 
-        port_input.apply {
+        portInput.apply {
             isVisible = true
             setText(currentPort ?: "")
             doOnTextChanged { _, _, _, _ -> updateSetProxyIsEnabled() }

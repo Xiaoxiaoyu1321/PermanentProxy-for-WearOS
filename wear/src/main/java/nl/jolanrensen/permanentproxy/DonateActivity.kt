@@ -1,11 +1,11 @@
 package nl.jolanrensen.permanentproxy
 
 import android.os.Bundle
-import android.support.wearable.activity.WearableActivity
-import kotlinx.android.synthetic.main.activity_donate.*
+import android.widget.TextView
+import androidx.activity.ComponentActivity
 import nl.jolanrensen.permanentproxy.Constants.launchUrlOnPhone
 
-class DonateActivity : WearableActivity() {
+class DonateActivity : ComponentActivity() {
 
     private fun getPaypalLink(amount: Double) = "https://paypal.me/jolanrensen/$amount"
 
@@ -18,36 +18,28 @@ class DonateActivity : WearableActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_donate)
 
-        // Enables Always-on
-        setAmbientEnabled()
-
-
-        thank_you_price.text = getString(R.string._dollar, thankYou.toString())
-        thank_you_card.setOnClickListener {
-            launchUrlOnPhone(
-                getPaypalLink(thankYou)
-            )
+        findViewById<TextView>(R.id.thank_you_price).text =
+            getString(R.string._dollar, thankYou.toString())
+        findViewById<android.view.View>(R.id.thank_you_card).setOnClickListener {
+            launchUrlOnPhone(getPaypalLink(thankYou))
         }
 
-        big_thank_you_price.text = getString(R.string._dollar, bigThankYou.toString())
-        big_thank_you_card.setOnClickListener {
-            launchUrlOnPhone(
-                getPaypalLink(bigThankYou)
-            )
+        findViewById<TextView>(R.id.big_thank_you_price).text =
+            getString(R.string._dollar, bigThankYou.toString())
+        findViewById<android.view.View>(R.id.big_thank_you_card).setOnClickListener {
+            launchUrlOnPhone(getPaypalLink(bigThankYou))
         }
 
-        bigger_thank_you_price.text = getString(R.string._dollar, biggerThankYou.toString())
-        bigger_thank_you_card.setOnClickListener {
-            launchUrlOnPhone(
-                getPaypalLink(biggerThankYou)
-            )
+        findViewById<TextView>(R.id.bigger_thank_you_price).text =
+            getString(R.string._dollar, biggerThankYou.toString())
+        findViewById<android.view.View>(R.id.bigger_thank_you_card).setOnClickListener {
+            launchUrlOnPhone(getPaypalLink(biggerThankYou))
         }
 
-        biggest_thank_you_price.text = getString(R.string._dollar, biggestThankYou.toString())
-        biggest_thank_you_card.setOnClickListener {
-            launchUrlOnPhone(
-                getPaypalLink(biggestThankYou)
-            )
+        findViewById<TextView>(R.id.biggest_thank_you_price).text =
+            getString(R.string._dollar, biggestThankYou.toString())
+        findViewById<android.view.View>(R.id.biggest_thank_you_card).setOnClickListener {
+            launchUrlOnPhone(getPaypalLink(biggestThankYou))
         }
     }
 }
