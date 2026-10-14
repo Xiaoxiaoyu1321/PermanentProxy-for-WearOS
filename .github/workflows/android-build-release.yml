@@ -221,15 +221,69 @@ jobs:
           echo "----- release notes -----"
           cat RELEASE_NOTES.md
 
+      # softprops/action-gh-release@v2 currently fails on the Node 24 runners, so the Release is
+      # created through the REST API with curl instead. No Node, no third-party action.
       - name: Publish GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          name: Permanent Proxy ${{ needs.build.outputs.version }}
-          tag_name: ${{ github.ref_name }}
-          body_path: RELEASE_NOTES.md
-          files: artifacts/*
-          draft: false
-          prerelease: ${{ contains(github.ref_name, '-') }}
-          generate_release_notes: false
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          set -euo pipefail
+          API="https://api.github.com/repos/${GITHUB_REPOSITORY}"
+          UPLOAD="https://uploads.github.com/repos/${GITHUB_REPOSITORY}"
+          AUTH=(-H "Authorization: Bearer ${GH_TOKEN}" -H "Accept: application/vnd.github+json" \
+                -H "X-GitHub-Api-Version: 2022-11-28")
+
+          # v5.0.1-beta.1 -> pre-release, v5.0.1 -> full release
+          PRERELEASE=false
+          case "$TAG" in *-*) PRERELEASE=true ;; esac
+
+          jq -n --arg tag "$TAG" \
+                --arg name "Permanent Proxy ${VERSION}" \
+                --rawfile body RELEASE_NOTES.md \
+                --argjson pre "$PRERELEASE" \
+             '{tag_name:$tag, name:$name, body:$body, draft:false, prerelease:$pre}' > release.json
+
+          echo "Creating the release for ${TAG} (prerelease=${PRERELEASE})"
+          CODE="$(curl -sS -o release_response.json -w '%{http_code}' \
+                   -X POST "${AUTH[@]}" "${API}/releases" --data-binary @release.json)"
+
+          if [ "$CODE" = "422" ]; then
+            # A release for this tag already exists (workflow re-run); reuse it.
+            echo "A release for ${TAG} already exists, reusing it."
+            CODE="$(curl -sS -o release_response.json -w '%{http_code}' \
+                     "${AUTH[@]}" "${API}/releases/tags/${TAG}")"
+          fi
+
+          if [ "$CODE" != "200" ] && [ "$CODE" != "201" ]; then
+            echo "::error title=Release creation failed (HTTP ${CODE})::$(head -c 900 release_response.json)"
+            exit 1
+          fi
+
+          RELEASE_ID="$(jq -r '.id' release_response.json)"
+          echo "Release id: ${RELEASE_ID}"
+          echo "Release url: $(jq -r '.html_url' release_response.json)"
+
+          # Attach the APKs and SHA256SUMS.txt, replacing same-named assets on a re-run.
+          for file in artifacts/*; do
+            asset="$(basename "$file")"
+            existing="$(curl -sS "${AUTH[@]}" "${API}/releases/${RELEASE_ID}/assets" \
+                        | jq -r --arg n "$asset" '.[] | select(.name == $n) | .id' | head -1)"
+            if [ -n "$existing" ]; then
+              echo "Replacing the existing asset ${asset} (id ${existing})"
+              curl -sS -X DELETE "${AUTH[@]}" "${API}/releases/assets/${existing}" > /dev/null
+            fi
+
+            echo "Uploading ${asset} ($(du -h "$file" | cut -f1))"
+            CODE="$(curl -sS -o asset_response.json -w '%{http_code}' \
+                     -X POST "${AUTH[@]}" -H "Content-Type: application/octet-stream" \
+                     --data-binary @"$file" "${UPLOAD}/releases/${RELEASE_ID}/assets?name=${asset}")"
+            if [ "$CODE" != "201" ]; then
+              echo "::error title=Uploading ${asset} failed (HTTP ${CODE})::$(head -c 900 asset_response.json)"
+              exit 1
+            fi
+            echo "  -> $(jq -r '.browser_download_url' asset_response.json)"
+          done
+
+          echo "Release published: $(jq -r '.html_url' release_response.json)"
