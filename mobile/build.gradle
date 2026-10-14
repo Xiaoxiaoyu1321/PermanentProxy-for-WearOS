@@ -14,7 +14,7 @@ android {
         targetSdk 34
         // CI overrides these from the pushed tag, e.g. -PversionNameOverride=5.0.0
         versionCode(project.findProperty('versionCodeOverride')?.toString()?.toInteger() ?: 17)
-        versionName(project.findProperty('versionNameOverride')?.toString() ?: "5.0")
+        versionName(project.findProperty('versionNameOverride')?.toString() ?: "5.0.0")
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
