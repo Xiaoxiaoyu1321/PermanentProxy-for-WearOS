@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.wear.widget.BoxInsetLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/black"
+    android:padding="@dimen/box_inset_layout_padding"
+    tools:context=".ShizukuSetupActivity"
+    tools:deviceIds="wear">
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:layout_marginBottom="8dp"
+                android:text="@string/shizuku_instructions"
+                android:textAlignment="center" />
+
+            <TextView
+                android:id="@+id/open_shizuku"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="?android:attr/selectableItemBackground"
+                android:gravity="center"
+                android:minHeight="45dp"
+                android:text="@string/open_shizuku"
+                android:textAppearance="@android:style/TextAppearance.Material.Body1" />
+
+            <TextView
+                android:id="@+id/download_shizuku"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="?android:attr/selectableItemBackground"
+                android:gravity="center"
+                android:minHeight="45dp"
+                android:text="@string/download_shizuku_on_phone"
+                android:textAppearance="@android:style/TextAppearance.Material.Body1" />
+
+            <TextView
+                android:id="@+id/developer_options"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="45dp"
+                android:background="?android:attr/selectableItemBackground"
+                android:gravity="center"
+                android:minHeight="45dp"
+                android:text="@string/open_developer_options"
+                android:textAppearance="@android:style/TextAppearance.Material.Body1" />
+
+        </LinearLayout>
+
+    </ScrollView>
+</androidx.wear.widget.BoxInsetLayout>

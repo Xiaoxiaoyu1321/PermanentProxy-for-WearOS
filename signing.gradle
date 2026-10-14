@@ -1,0 +1,38 @@
+// Release signing configuration shared by the :wear and :mobile modules.
+//
+// The keystore committed at keystore/permanentproxy-release.jks is a PUBLIC key. It exists so that
+// CI and anyone building from source produce a *signed, installable* APK with a stable signature
+// across releases, which is what makes in-place upgrades possible.
+//
+// For a real distribution (Play Store, F-Droid, ...) set these environment variables instead and
+// the committed key is ignored:
+//   RELEASE_STORE_FILE       path to the .jks/.keystore
+//   RELEASE_STORE_PASSWORD
+//   RELEASE_KEY_ALIAS
+//   RELEASE_KEY_PASSWORD
+def envStoreFile = System.getenv("RELEASE_STORE_FILE")
+def useEnvKeystore = envStoreFile != null && !envStoreFile.isEmpty() && file(envStoreFile).exists()
+
+android {
+    signingConfigs {
+        release {
+            if (useEnvKeystore) {
+                storeFile file(envStoreFile)
+                storePassword System.getenv("RELEASE_STORE_PASSWORD")
+                keyAlias System.getenv("RELEASE_KEY_ALIAS")
+                keyPassword System.getenv("RELEASE_KEY_PASSWORD")
+            } else {
+                storeFile rootProject.file("keystore/permanentproxy-release.jks")
+                storePassword "permanentproxy"
+                keyAlias "permanentproxy"
+                keyPassword "permanentproxy"
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            signingConfig signingConfigs.release
+        }
+    }
+}

@@ -38,6 +38,9 @@ android {
     }
 }
 
+// Adds the release signing configuration (see signing.gradle).
+apply from: rootProject.file('signing.gradle')
+
 dependencies {
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
     implementation 'androidx.appcompat:appcompat:1.7.0'

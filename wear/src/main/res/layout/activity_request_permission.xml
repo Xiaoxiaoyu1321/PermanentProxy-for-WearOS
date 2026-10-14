@@ -21,10 +21,11 @@
             android:orientation="vertical">
 
             <TextView
+                android:id="@+id/message"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="45dp"
-                android:text="@string/requesting_permission"
+                android:text="@string/requesting_shizuku_permission"
                 android:textAlignment="center"
                 android:textAppearance="@android:style/TextAppearance.Material.Body1" />
 
@@ -47,12 +48,12 @@
                 android:background="?android:attr/selectableItemBackground"
                 android:foregroundGravity="center"
                 android:gravity="center"
-                android:visibility="gone"
-                tools:visibility="visible"
                 android:minHeight="45dp"
                 android:text="@string/too_long"
                 android:textAlignment="center"
-                android:textAppearance="@android:style/TextAppearance.Material.Body1" />
+                android:textAppearance="@android:style/TextAppearance.Material.Body1"
+                android:visibility="gone"
+                tools:visibility="visible" />
 
             <TextView
                 android:id="@+id/cancel"
@@ -63,7 +64,7 @@
                 android:foregroundGravity="center"
                 android:gravity="center"
                 android:minHeight="45dp"
-                android:text="@string/cancel"
+                android:text="@string/close"
                 android:textAlignment="center"
                 android:textAppearance="@android:style/TextAppearance.Material.Body1" />
 

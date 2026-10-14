@@ -5,32 +5,58 @@
     values-round/strings.xml for round devices.
     -->
     <string name="hello_world">Hello Square World!</string>
-    <string name="start_proxy">Start Proxy</string>
-    <string name="adb_enabled">Please enable ADB over bluetooth and \"always allow computer\" if asked.</string>
-    <string name="success_proxy">Successfully set proxy</string>
+
+    <!-- Main screen -->
     <string name="status">Proxy:</string>
-    <string name="loading">loading…</string>
-    <string name="proxy">Proxy</string>
-    <string name="set_proxy">Set proxy</string>
-    <string name="set_proxy_address">Set proxy address</string>
-    <string name="set_proxy_port">Set proxy port</string>
-    <string name="not_enabled">Proxy not enabled</string>
-    <string name="something_wrong">Something went wrong, try again</string>
-    <string name="show_me_how">How to enable ADB over Bluetooth?</string>
-    <string name="title_activity_enable_adbbluetooth">EnableADBBluetoothActivity</string>
-    <string name="instructions"><![CDATA[Please read carefully:\nTo get started, first enable the Developer Options of your watch, which can be achieved by going to Settings -> System -> About and tap the Build number until you are a \"developer\".\nNext, go to Settings -> Developer options and enable \"ADB debugging\" and \"Debug over Bluetooth\".\nFinally start up Permanent Proxy, request permission and press \"Allow\" or \"Always allow this Computer\" if prompted.\nAfter the app has gotten permission, ADB can be turned off again unless you want to disable the proxy.\n\nNow you can get started! Simply enter a proxy address and port, enable it and you\'re done! If you reboot, the proxy will remain.\n\nProxy services can be found online and can be from any country. However, do make sure your proxy works and you completely trust the proxy you chose before you enter it! All the data of your watch might be sent through that proxy, even sensitive data, so act at your own risk.]]></string>
-    <string name="requesting_permission">Requesting permission. This can take up to 25 seconds… \"Allow\" or \"Always allow computer\" if prompted.\n\Remember: the app works best with WiFi turned OFF.</string>
-    <string name="wss_permission_needed">Write secure settings permission needed. This can be enabled via ADB over Bluetooth.</string>
-    <string name="request_permission">ADB over Bluetooth is enabled, request permission!</string>
-    <string name="permission_granted">Permission granted,\nADB can be turned off.</string>
-    <string name="enable_proxy">Enable proxy</string>
-    <string name="disable_proxy">Disable proxy (ADB needed, will reboot watch)</string>
-    <string name="turning_off">Turning off proxy, please wait…</string>
     <string name="current_ext">External IP:</string>
+    <string name="privileged_access">Privileged access:</string>
+    <string name="loading">loading…</string>
     <string name="NA">N/A</string>
-    <string name="other_apps">Other apps and external IP might take time to update.</string>
-    <string name="cancel">Cancel</string>
-    <string name="valid_port">Error: did you enter a valid port?</string>
+    <string name="proxy_not_enabled">Proxy not enabled</string>
+    <string name="proxy">Proxy</string>
+    <string name="proxy_address">Proxy address:</string>
+    <string name="proxy_port">Proxy port:</string>
+    <string name="address">address / IP</string>
+    <string name="port">port</string>
+    <string name="set_proxy">Set proxy</string>
+    <string name="disable_proxy">Disable proxy</string>
+    <string name="reboot_after_disable">Reboot the watch afterwards</string>
+    <string name="setting_proxy">Setting proxy, please wait…</string>
+    <string name="turning_off">Turning off proxy, please wait…</string>
+    <string name="other_apps">Other apps and the external IP might take some time to update.</string>
+    <string name="valid_port">Error: did you enter a valid address and port?</string>
+    <string name="something_wrong">Something went wrong, try again</string>
+
+    <!-- Privileged access status -->
+    <string name="privilege_direct">direct (WRITE_SECURE_SETTINGS granted)</string>
+    <string name="privilege_shizuku">Shizuku, running as %1$s</string>
+    <string name="shizuku_not_installed">Shizuku is not installed</string>
+    <string name="shizuku_not_running">Shizuku is installed but not running</string>
+    <string name="shizuku_permission_missing">Shizuku permission not granted yet</string>
+
+    <!-- Shizuku setup -->
+    <string name="setup_shizuku">How to set up Shizuku?</string>
+    <string name="grant_shizuku_permission">Grant Shizuku permission</string>
+    <string name="manual_setup">No Shizuku? Set up with a PC instead</string>
+    <string name="shizuku_instructions"><![CDATA[Permanent Proxy uses Shizuku to gain the same privileges as an ADB shell, so it no longer needs "Debug over Bluetooth".\n\n1. Install Shizuku on your watch (sideload the APK, or install it from the Play Store on your phone and use "Apps on your phone").\n\n2. Start Shizuku:\n• Android 11 and newer: turn on Developer options → Wireless debugging, then open the Shizuku app and start it from there.\n• Any Android 6.0+: connect the watch to a computer with adb and run:\n  adb shell sh /storage/emulated/0/Android/data/moe.shizuku.privileged.api/start.sh\n• Rooted? Just start Shizuku and choose root.\n\n3. Start Shizuku again after every reboot (non-rooted devices only), then open Permanent Proxy and tap "Grant Shizuku permission".]]></string>
+    <string name="requesting_shizuku_permission">Waiting for the Shizuku permission dialog.\n\nTap "Allow" when it appears.\nIf nothing happens, make sure Shizuku is running.</string>
+    <string name="requesting_permission">Requesting permission…</string>
+    <string name="too_long">Nothing happens?</string>
+    <string name="close">Close</string>
+    <string name="open_shizuku">Open Shizuku</string>
+    <string name="download_shizuku_on_phone">Open the Shizuku website on my phone</string>
+    <string name="open_developer_options">Open developer options</string>
+    <string name="shizuku_permission_granted">Permission granted!</string>
+    <string name="shizuku_permission_denied">Permission denied</string>
+    <string name="shizuku_permission_denied_permanently">You chose "deny and don\'t ask again". Allow Permanent Proxy manually in the Shizuku app, then try again.</string>
+    <string name="shizuku_request_failed">Could not ask Shizuku for permission. Is Shizuku running?</string>
+
+    <!-- PC / adb fallback -->
+    <string name="adb_fallback"><![CDATA[If you cannot or do not want to use Shizuku, you can give Permanent Proxy the "write secure settings" permission once from a computer. After that the app controls the proxy on its own.\n\n1. Connect your watch to a computer with adb (Developer options → ADB debugging).\n\n2. Run:\n\nadb shell pm grant nl.jolanrensen.permanentproxy android.permission.WRITE_SECURE_SETTINGS\n\nThat is all. Reopen Permanent Proxy and set your proxy.\n\nTo undo this later:\n\nadb shell pm revoke nl.jolanrensen.permanentproxy android.permission.WRITE_SECURE_SETTINGS\n\nNote: this permission survives reboots, but it is removed when you reinstall the app.]]></string>
+    <string name="title_activity_shizuku_setup">How to set up Shizuku</string>
+    <string name="title_activity_adb_fallback">Set up with a PC</string>
+
+    <!-- Donations -->
     <string name="donate">Donate</string>
     <string name="title_activity_donate">DonateActivity</string>
     <string name="billing_unavailable">It seems I\'m unable to connect to Google Play at the moment. Retry later or, if you don\'t have Google Play, you can always use PayPal to donate:</string>
@@ -47,13 +73,5 @@
     <string name="donating">Donating won\'t give you extra features, however, it will considerably support me, the developer, to continue
         making awesome apps like this one!</string>
     <string name="donation_successful">Thank you very much for donating! It is much appreciated :)</string>
-    <string name="too_long">Nothing happens?</string>
-    <string name="title_activity_old_watch">OldWatchActivity</string>
     <string name="_dollar">\$%1$s</string>
-    <string name="old_watch">Some older watches are not powerful enough to get Secure Settings permission by itself using my method. If this is the case for your watch, you will need a PC to grant Permanent Proxy permission. The instructions are also available in the mobile app or in the app description.\n\nFirst make sure to connect your watch to your PC via ADB. You can Google how to do this, there are lots of tutorials. When your watch is connected, use the command\n\nadb shell pm grant nl.jolanrensen.permanentproxy android.permission.WRITE_SECURE_SETTINGS\n\nto give Permanent Proxy the permissions needed to turn on/edit the proxy.\n\nTo turn off the proxy, connect to your PC in the same manner as before, but now you will need the following command:\n\nadb shell settings delete global http_proxy; adb shell settings delete global global_http_proxy_host; adb shell settings delete global global_http_proxy_port; adb shell settings delete global global_http_proxy_exclusion_list; adb shell settings delete global global_proxy_pac_url; adb shell reboot</string>
-    <string name="request_permission_not_working">Requesting permission or turning off proxy not working?</string>
-    <string name="proxy_address">Proxy address:</string>
-    <string name="proxy_port">Proxy port:</string>
-    <string name="address">address / IP</string>
-    <string name="port">port</string>
 </resources>

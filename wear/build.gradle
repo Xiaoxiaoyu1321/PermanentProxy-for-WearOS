@@ -44,6 +44,9 @@ android {
     }
 }
 
+// Adds the release signing configuration (see signing.gradle).
+apply from: rootProject.file('signing.gradle')
+
 dependencies {
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
@@ -59,11 +62,7 @@ dependencies {
     implementation 'com.google.android.gms:play-services-wearable:18.1.0'
 
     // Shizuku: lets this app run code with shell (ADB) or root identity.
-    // This replaces the old "ADB over Bluetooth" implementation (com.tananaev:adblib).
+    // This replaced the old "ADB over Bluetooth" implementation (com.tananaev:adblib).
     implementation "dev.rikka.shizuku:api:${rootProject.ext.shizuku_version}"
     implementation "dev.rikka.shizuku:provider:${rootProject.ext.shizuku_version}"
-
-    // Legacy ADB-over-Bluetooth implementation, kept until the Shizuku layer is wired up.
-    implementation files('../libraries/commons-codec-1.10-rep.jar')
-    implementation 'com.tananaev:adblib:1.2'
 }
