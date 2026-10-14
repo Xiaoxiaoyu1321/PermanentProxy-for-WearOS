@@ -179,12 +179,40 @@ UserService 进程（uid = 2000 / 0）  ← 运行我们在 APK 里的 IShizukuS
 | 2 | 2026-10-14 | 构建现代化 + Shizuku 底层 | Gradle 6.1.1→8.10.2、AGP 4.0.0→8.5.2、Kotlin 1.3.72→1.9.24、去 jcenter、compileSdk 34、minSdk 23→24；`kotlin-android-extensions` → `findViewById`；`WearableActivity` → `ComponentActivity`；`com.android.support:wear` → `androidx.wear:wear:1.3.0`；`RemoteIntent` → `RemoteActivityHelper`；补齐本地 `color/black`、`color/grey`；**新增 Shizuku 底层**：`IShizukuShellService.aidl`、`ShellResult.kt`、`ShizukuShellService.kt`、`ShizukuManager.kt`、`ProxyManager.kt`。本地 `:wear:assembleDebug` 通过。commit `e4a54dd0` | ✅ |
 | 3 | 2026-10-14 | **通讯层切换为 Shizuku（核心改造）** | 删除 `SendSingleCommand.kt`、`adblib`、`commons-codec` repack jar、7272 端口常量、`EnableADBBluetoothActivity`、`OldWatchActivity`；新增 `ShizukuManager`（binder 跟踪 / 权限申请 / UserService 绑定 / `suspend exec`）、`ShizukuShellService` + AIDL + `ShellResult`（以 shell uid 2000 或 root uid 0 执行 `/system/bin/sh`）、`ProxyManager`（优先直写 `Settings.Global`，否则走 Shizuku shell）、`ShizukuSetupActivity`、`AdbFallbackActivity`、`PermanentProxyApp`、`signing.gradle` + 公开 release keystore；关闭代理不再强制重启（改为可选勾选）；UI 显示提权状态。本地 `:wear:assembleDebug/assembleRelease`、`:mobile:assembleRelease` 全部通过，`apksigner verify` 通过。commit `dae765b4` | ✅ |
 | 4 | 2026-10-14 | **GitHub Actions + 文档** | 新增 `.github/workflows/android-build-release.yml`：push/PR 构建 4 个 APK 并上传 artifact；打 `v*.*.*` tag 时自动构建、校验签名、生成 `SHA256SUMS.txt`、写出 Release 文本并发布 GitHub Release；版本号从 tag 注入（`-PversionNameOverride` / `-PversionCodeOverride`）。本地已用真实脚本验证 YAML 合法、版本解析、Release 文本渲染、版本覆盖构建（versionName 5.0.0 / versionCode 42）。重写 `README.md`。commit `adc7553e` | ✅ |
+| 4.1 | 2026-10-14 | CI 修障（第二次运行） | 首次运行在 `Set up Android SDK` 失败：`android-actions/setup-android@v3` 只支持 Node 20，被 runner 强制在 Node 24 上运行而崩溃。改为直接使用 runner 预装的 Android SDK（自动定位 `sdkmanager`、导出 `ANDROID_HOME`/`ANDROID_SDK_ROOT`），checkout / setup-java 升到 v5。`0f526c67` 后 CI 全绿 | ✅ |
+| 4.2 | 2026-10-14 | CI 修障（tag 发布） | tag 构建的 Publish Release 步骤失败：`softprops/action-gh-release@v2` 同样是 Node 20 目标、被强制到 Node 24。改为用 `curl` + `jq` 直接调用 GitHub REST API 创建 Release 并上传资源（零 Node 依赖、可重复执行、失败时以 `::error` 注解回传 API 响应体）。commit `e62ad695` | ✅ |
+| 5 | 2026-10-14 | **发布正式版本 v5.0.0** | 合并 `dev` → `master`，打标签 `v5.0.0` 并推送。CI 自动完成：构建 → 单元测试 → 收集产物 → `apksigner` 校验签名 → 创建 GitHub Release（含 Release 正文 + 4 个文件）。已下载发布产物复核：SHA-256 与 `SHA256SUMS.txt` 一致、签名有效、`versionName=5.0.0` / `minSdk 24` / `targetSdk 34`。<br>Release：https://github.com/Xiaoxiaoyu1321/PermanentProxy-for-WearOS/releases/tag/v5.0.0 | ✅ |
+
+---
+
+## 5.1 需求验收对照
+
+| 编号 | 需求 | 结果 | 证据 |
+| --- | --- | --- | --- |
+| **F1** | 用 Shizuku API 替换蓝牙 ADB 通讯 | ✅ | `SendSingleCommand.kt` / `adblib` / `commons-codec` / 端口 7272 全部删除；提权入口只剩 `ShizukuManager` |
+| **F2** | 通过 Shizuku 执行 shell 命令 | ✅ | `ShizukuShellService`（Shizuku UserService，uid 2000 或 0）执行 `/system/bin/sh -c`；`ProxyManager` 调用之 |
+| **F3** | 保留设置/关闭代理与状态显示 | ✅ | `ProxyManager.enableProxy` / `disableProxy` / `currentProxy`；`MainActivity` 显示状态、出口 IP、提权方式 |
+| **F4** | 适配更多设备 | ✅ | 不再依赖「通过蓝牙调试」开发者选项；任何能运行 Shizuku 的 Android 6.0+ 设备可用（minSdk 24，Wear OS 2.0+） |
+| **F5** | 保留手动 PC ADB 兜底 | ✅ | 检测到 `WRITE_SECURE_SETTINGS` 时直接 `Settings.Global` 写入；`AdbFallbackActivity` 给出 `pm grant` 指令 |
+| **F6** | 关闭代理不再强制重启 | ✅ | `disableProxy(reboot = false)` 为默认；重启改为界面上的可选勾选框 |
+| **F7** | Shizuku 不可用时有引导 | ✅ | `ShizukuSetupActivity`（安装/无线调试/PC adb/root 三种启动方式）+ 首页 `privilege_status` 明确提示当前缺什么 |
+| **E1** | `flag.md` 需求 + 进度 | ✅ | 本文件 |
+| **E2** | 在 `dev` 分支工作 | ✅ | 全部改造先提交到 `dev`，最后 ff 合并到 `master` |
+| **E3** | 阶段性 commit | ✅ | 6 个功能/构建 commit + 5 个 `flag.md` 进度 commit |
+| **E4** | 项目可编译 | ✅ | `./gradlew clean :wear:assembleDebug :wear:assembleRelease :mobile:assembleDebug :mobile:assembleRelease` 全部成功 |
+| **E5** | GitHub Actions 自动构建 | ✅ | 每次 push / PR 构建 4 个 APK 并上传 artifact（run `38587824591`、`38588464182` 均为 success） |
+| **E6** | tag 触发 Release | ✅ | push `v5.0.0` → 自动发布 Release 并附带 APK + `SHA256SUMS.txt` + Release 正文 |
+| **E7** | 发布正式可用版本 | ✅ | https://github.com/Xiaoxiaoyu1321/PermanentProxy-for-WearOS/releases/tag/v5.0.0 |
 
 ---
 
 ## 6. 风险与注意事项
 
-- **Shizuku 需手动启动**：非 root 设备每次重启后必须重新启动 Shizuku（Android 11+ 可在手表上直接开无线调试启动；更旧版本需要电脑 adb 一次）。这不是本项目能绕过的限制，README 中需明确说明。
-- **Wear OS 上安装 Shizuku**：Shizuku 是标准 APK，可通过 `adb install` 侧载到手表。
-- **Release 签名**：仓库未提供历史 keystore，CI 默认使用 debug 签名产出**可直接安装**的 APK；若配置了 `KEYSTORE_BASE64` 等 Secrets 则使用正式签名。
+- **Shizuku 需手动启动**：非 root 设备每次重启后必须重新启动 Shizuku（Android 11+ 可在手表上直接开无线调试启动；更旧版本需要电脑 adb 一次）。这不是本项目能绕过的限制，README 中已明确说明。代理设置本身仍然跨重启保留。
+- **Wear OS 上安装 Shizuku**：Shizuku 是标准 APK，可通过 `adb install` 侧载到手表，或从手机的 Play 商店推送。
+- **Release 签名**：仓库中的 `keystore/permanentproxy-release.jks` 是**公开的测试密钥**（口令 `permanentproxy`），目的是让 CI 与任何从源码构建的人都产出**签名一致、可原地升级**的 APK。若要正式分发（Play/F-Droid），请通过环境变量 `RELEASE_STORE_FILE` / `RELEASE_STORE_PASSWORD` / `RELEASE_KEY_ALIAS` / `RELEASE_KEY_PASSWORD` 换成自己的密钥。
 - **`settings put global http_proxy` 的生效时机**：部分老系统需要重启才完全生效，因此保留「关闭代理并重启」选项。
+- **minSdk 由 23 提升到 24**：`dev.rikka.shizuku:api` 的清单要求 minSdk ≥ 24；Wear OS 2.0 起就是 API 25，因此实际不损失任何设备。
+- **GitHub-hosted runner 的 Node 20 → 24 迁移**：仓库中已避开所有依赖 Node 20 的第三方 action（`android-actions/setup-android@v3`、`softprops/action-gh-release@v2`），改用 runner 预装 SDK 与 REST API，避免后续再次失效。
+- **未做设备实机验证**：本次改造通过了完整编译、签名校验与产物检查，但 Shizuku 的实际授权弹窗与代理生效需要在真机/手表上验证。
+
