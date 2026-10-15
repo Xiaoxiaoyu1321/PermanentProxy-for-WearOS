@@ -85,8 +85,10 @@ The same instructions are available in the app under *"No Shizuku? Set up with a
 ### Using it
 
 Enter a proxy address and port, tap **Set proxy**, and you are done — the proxy keeps working after
-a reboot. To turn it off, tap **Disable proxy**. On some older builds you may have to tick
-*"Reboot the watch afterwards"* for the change to take effect.
+a reboot. To turn it off, tap **Disable proxy**; it takes effect immediately, no reboot required.
+(4.x had to reboot the watch at this point, because deleting the stored settings alone does not
+make system_server drop the proxy it has cached. The app now writes `http_proxy=:0` first, which
+does. The *"Reboot the watch afterwards"* checkbox is still there for very old builds that need it.)
 
 Proxy services can be found online and can be from any country. However, make sure you completely
 trust the proxy you choose before entering it: all the data of your watch may be sent through that
@@ -180,6 +182,12 @@ git tag v5.0.1 && git push origin v5.0.1
 
 ## Credits
 
-- Original app by [Jolan Rensen](https://github.com/Jolanrensen).
-- Privileged access in 5.0+ provided by [Shizuku](https://github.com/RikkaApps/Shizuku-API) by Rikka.
-- Thanks to reddit user /u/shadowban!
+- Original app and design by [Jolan Rensen](https://github.com/Jolanrensen). The donation options
+  in the app belong to the original author and are unchanged.
+- Shizuku edition maintained by [@Xiaoxiaoyu1321](https://github.com/Xiaoxiaoyu1321).
+- Privileged access provided by [Shizuku](https://github.com/RikkaApps/Shizuku-API) by Rikka.
+- The Shizuku integration, the build modernisation and the release automation were developed with
+  assistance from **DeepSeek Harness**（由 DeepSeek Harness 辅助生成）.
+
+The same credits are shown in the app under *About & credits*.
+

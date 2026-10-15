@@ -20,7 +20,7 @@
     <string name="port">port</string>
     <string name="set_proxy">Set proxy</string>
     <string name="disable_proxy">Disable proxy</string>
-    <string name="reboot_after_disable">Reboot the watch afterwards</string>
+    <string name="reboot_after_disable">Reboot the watch afterwards (rarely needed)</string>
     <string name="setting_proxy">Setting proxy, please wait…</string>
     <string name="turning_off">Turning off proxy, please wait…</string>
     <string name="other_apps">Other apps and the external IP might take some time to update.</string>
@@ -56,6 +56,16 @@
     <string name="title_activity_shizuku_setup">How to set up Shizuku</string>
     <string name="title_activity_adb_fallback">Set up with a PC</string>
 
+    <!-- About / credits -->
+    <string name="about">About &amp; credits</string>
+    <string name="title_activity_about">About</string>
+    <string name="about_title">Permanent Proxy for Wear OS</string>
+    <string name="about_version">Version %1$s</string>
+    <string name="about_credits"><![CDATA[Simple app to run a proxy (on boot) on a Wear OS device and enable geo-restricted apps like Google Pay in unsupported regions.\n\nOriginal app and design by Jolan Rensen.\nThe Shizuku integration, the build modernisation and the automated releases are by its current maintainer.\n\nShizuku 集成（5.0 起）、构建现代化与自动发布流程由 DeepSeek Harness 辅助生成。\nThe Shizuku integration (5.0+), the build modernisation and the release automation were developed with assistance from DeepSeek Harness.\n\nPrivileged access is provided by Shizuku, which runs code with the identity of an ADB shell or of root. It replaces the "ADB over Bluetooth" implementation used up to version 4.0, which only worked on devices whose developer options still expose "Debug over Bluetooth".\n\nDonations go to the original author and are entirely optional.]]></string>
+    <string name="about_original_author">Original author\n@Jolanrensen</string>
+    <string name="about_maintainer">Shizuku edition maintained by\n@Xiaoxiaoyu1321</string>
+    <string name="about_shizuku">Privileged access: Shizuku\n@RikkaApps</string>
+
     <!-- Donations -->
     <string name="donate">Donate</string>
     <string name="title_activity_donate">DonateActivity</string>
@@ -73,5 +83,6 @@
     <string name="donating">Donating won\'t give you extra features, however, it will considerably support me, the developer, to continue
         making awesome apps like this one!</string>
     <string name="donation_successful">Thank you very much for donating! It is much appreciated :)</string>
+    <string name="donate_credits">Original app by @Jolanrensen — Shizuku edition by @Xiaoxiaoyu1321,\nwith assistance from DeepSeek Harness</string>
     <string name="_dollar">\$%1$s</string>
 </resources>
