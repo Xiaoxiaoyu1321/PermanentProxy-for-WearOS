@@ -143,6 +143,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          # Full history + tags, needed to build the changelog against the previous release.
+          fetch-depth: 0
+          fetch-tags: true
 
       - name: Download build artifacts
         uses: actions/download-artifact@v4
@@ -157,69 +161,39 @@ jobs:
         run: |
           set -euo pipefail
           VERSION="${{ needs.build.outputs.version }}"
-          cat > RELEASE_NOTES.md <<EOF
-          # Permanent Proxy for Wear OS $VERSION
 
-          Runs a system-wide HTTP proxy on your watch so geo-restricted apps (Google Pay and
-          friends) work from unsupported regions — and keeps it enabled across reboots.
+          # The commit subjects since the previous version tag, written to a file so that
+          # backticks or $ in a commit message can never be interpreted by the shell.
+          PREV_TAG="$(git tag --list 'v*.*.*' --sort=-v:refname | grep -vx "v${VERSION}" | head -1 || true)"
+          if [ -n "$PREV_TAG" ]; then
+            echo "Writing the changelog since ${PREV_TAG}"
+            git log --no-merges --pretty='- %s' "${PREV_TAG}..HEAD" > changelog.txt
+            RANGE_HEADING="Changes since ${PREV_TAG}"
+          else
+            echo "No previous version tag found, listing the most recent commits"
+            git log --no-merges --pretty='- %s' -20 HEAD > changelog.txt
+            RANGE_HEADING="What is in this release"
+          fi
+          if [ ! -s changelog.txt ]; then
+            echo "- Maintenance release, no user visible changes." > changelog.txt
+          fi
+          echo "----- changelog -----"
+          cat changelog.txt
 
-          ## What's new in this release
+          # Splice the changelog into the template. Template variables are replaced by awk, so the
+          # text itself needs no shell escaping (it contains backticks, $ and | characters).
+          awk -v ver="${VERSION}" -v heading="${RANGE_HEADING}" '
+            /@CHANGELOG@/ {
+              while ((getline line < "changelog.txt") > 0) print line
+              close("changelog.txt")
+              next
+            }
+            { gsub(/@VERSION@/, ver); gsub(/@RANGE_HEADING@/, heading); print }
+          ' .github/release-notes-template.md > RELEASE_NOTES.md
 
-          **This release replaces the Bluetooth ADB implementation with the [Shizuku](https://shizuku.rikka.app/) API.**
-
-          The old version obtained the \`WRITE_SECURE_SETTINGS\` privilege by speaking the ADB
-          protocol over Bluetooth to \`localhost:7272\`. That only ever worked on devices whose
-          developer options still expose *"Debug over Bluetooth"*, which Wear OS 3.5 / 4 / 5 and
-          most other devices no longer do.
-
-          All device communication now goes through Shizuku, so Permanent Proxy works on **any
-          Android 6.0+ device that can run Shizuku** — started with wireless debugging, a computer
-          with adb, or root.
-
-          ### Highlights
-
-          - 🔁 **Shizuku instead of Bluetooth ADB** — no "Debug over Bluetooth" developer option needed any more.
-          - 📶 **Works on Wear OS 3 / 4 / 5** and on many more watches than before.
-          - 🛡️ **No more rebooting to disable the proxy** — clearing the setting is enough on modern
-            builds. Rebooting is still available as an opt-in checkbox for older ones.
-          - 🔎 **Privileged-access status in the app** — you can see whether it is running through
-            Shizuku (shell or root) or through a direct permission.
-          - 🧰 **PC fallback kept** — if you would rather not use Shizuku, grant
-            \`WRITE_SECURE_SETTINGS\` once with \`adb\` and the app works on its own.
-          - 🏗️ **Modernised build** — Gradle 8.10.2, AGP 8.5.2, Kotlin 1.9.24, AndroidX Wear, compileSdk 34.
-
-          ### Getting started
-
-          1. Install the Wear APK on your watch:
-             \`adb install -r permanentproxy-wear-$VERSION.apk\`
-             (or install the companion app on your phone and use *"Apps on your phone"*.)
-          2. Install **Shizuku** on the watch and start it
-             (wireless debugging on Android 11+, \`adb\` from a computer, or root).
-          3. Open Permanent Proxy → **Grant Shizuku permission** → enter your proxy host and port → **Set proxy**.
-
-          Shizuku has to be started again after every reboot on non-rooted devices; the proxy
-          setting itself survives reboots.
-
-          ### Downloads
-
-          | File | Device | Notes |
-          | --- | --- | --- |
-          | \`permanentproxy-wear-$VERSION.apk\` | Wear OS watch | Release build to sideload with \`adb install\` |
-          | \`permanentproxy-mobile-$VERSION.apk\` | Android phone | Companion app, bundles the Wear app |
-          | \`permanentproxy-wear-$VERSION-debug.apk\` | Wear OS watch | Debug build, for bug reports |
-
-          Verify your download with \`SHA256SUMS.txt\`.
-
-          > ⚠️ **A proxy sees all of your watch's traffic.** Only ever use a proxy you control and
-          > trust. Proxies with authentication are not supported, because Android's global proxy
-          > setting does not carry credentials.
-
-          ## Credits
-
-          Shizuku API by Rikka — https://github.com/RikkaApps/Shizuku-API
-          EOF
           echo "----- release notes -----"
           cat RELEASE_NOTES.md
+
 
       # softprops/action-gh-release@v2 currently fails on the Node 24 runners, so the Release is
       # created through the REST API with curl instead. No Node, no third-party action.
