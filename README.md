@@ -86,9 +86,13 @@ The same instructions are available in the app under *"No Shizuku? Set up with a
 
 Enter a proxy address and port, tap **Set proxy**, and you are done — the proxy keeps working after
 a reboot. To turn it off, tap **Disable proxy**; it takes effect immediately, no reboot required.
-(4.x had to reboot the watch at this point, because deleting the stored settings alone does not
-make system_server drop the proxy it has cached. The app now writes `http_proxy=:0` first, which
-does. The *"Reboot the watch afterwards"* checkbox is still there for very old builds that need it.)
+
+*(4.x had to reboot the watch here, because deleting the stored settings alone does not make
+system_server drop the proxy it has cached. The app now writes `http_proxy=:0` first, waits until
+system_server confirms that it dropped the cached proxy, and only then deletes the settings. If a
+device does not react to that, or the write fails, the app automatically falls back to the plain
+"delete the settings" path that 4.x used and tells you a reboot may be needed. The
+"Reboot the watch afterwards" checkbox is kept for exactly those devices.)*
 
 Proxy services can be found online and can be from any country. However, make sure you completely
 trust the proxy you choose before entering it: all the data of your watch may be sent through that

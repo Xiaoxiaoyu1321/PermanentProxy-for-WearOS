@@ -6,6 +6,7 @@ import android.provider.Settings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
+import nl.jolanrensen.permanentproxy.Constants.logD
 import nl.jolanrensen.permanentproxy.Constants.logE
 
 /**
@@ -102,6 +103,10 @@ object ProxyManager {
      */
     private const val SETTLE_MS = 700L
 
+    /** How often, and for how long, we wait for system_server to acknowledge the change. */
+    private const val VERIFY_ATTEMPTS = 5
+    private const val VERIFY_INTERVAL_MS = 300L
+
     const val DEFAULT_ADB_PORT = 5555
 
     /** Result of an operation, ready to be shown to the user. */
@@ -161,16 +166,45 @@ object ProxyManager {
         }
 
     /**
+     * Which mechanism is used to switch the proxy off.
+     *
+     * **Both are kept on purpose** — the [DELETE_ONLY] strategy is what 4.x did, and it stays as a
+     * fallback so a device that does not play along with the sentinel still ends up with clean
+     * settings. Whichever one runs, the caller gets the same [Result] and the same UI flow.
+     */
+    private enum class ClearStrategy(val label: String) {
+        /**
+         * Preferred. Write [CLEAR_PROXY_VALUE] to `http_proxy`, wait for system_server to drop the
+         * cached global proxy, then delete every proxy key. The only strategy that takes effect
+         * immediately.
+         */
+        SENTINEL_THEN_DELETE("sentinel-then-delete"),
+
+        /** Fallback, and the historic behaviour: delete every proxy key and nothing else. */
+        DELETE_ONLY("delete-only")
+    }
+
+    private data class ClearOutcome(
+        val success: Boolean,
+        /** True when system_server acknowledged the change and dropped its cached proxy. */
+        val frameworkReacted: Boolean,
+        val message: String
+    )
+
+    /**
      * Disables the system proxy.
      *
-     * Two steps, in this order:
+     * Two strategies, tried in order, so that they back each other up:
      *
-     *  1. write [CLEAR_PROXY_VALUE] to `http_proxy`, which is the only thing that makes
-     *     system_server drop the global proxy it holds in memory (see [CLEAR_PROXY_VALUE]);
-     *  2. delete every proxy related key, so no stale state is left behind for the next boot.
+     *  1. [ClearStrategy.SENTINEL_THEN_DELETE] — write [CLEAR_PROXY_VALUE] to `http_proxy` (the only
+     *     value that makes system_server drop the global proxy it caches in memory), confirm that
+     *     system_server actually reacted, then delete every proxy key.
+     *  2. [ClearStrategy.DELETE_ONLY] — if strategy 1 could not be written, or if the device did not
+     *     acknowledge it, fall back to the 4.x behaviour of simply deleting the settings. The
+     *     persisted state is then at least clean, and the user is told a reboot may be needed.
      *
-     * @param reboot reboot afterwards anyway. Only needed on very old builds; kept as an explicit
-     *   opt-in for those, but no longer forced the way the 4.x implementation did.
+     * @param reboot reboot afterwards anyway. Only needed on the devices that fall back; kept as an
+     *   explicit opt-in for those, but no longer forced the way the 4.x implementation did.
      */
     suspend fun disableProxy(context: Context, reboot: Boolean = false): Result =
         withContext(Dispatchers.IO) {
@@ -188,52 +222,125 @@ object ProxyManager {
         }
 
     private suspend fun disableProxyInternal(context: Context): Result {
-        if (hasDirectWriteAccess(context)) {
-            return runCatching {
-                Settings.Global.putString(context.contentResolver, KEY_HTTP_PROXY, CLEAR_PROXY_VALUE)
-                delay(SETTLE_MS)
-                ALL_PROXY_KEYS.forEach {
-                    Settings.Global.putString(context.contentResolver, it, null)
-                }
-                Result(true, "Proxy disabled", viaShizuku = false)
-            }.getOrElse {
-                logE("Could not clear the proxy setting", it)
-                Result(false, "Could not clear the proxy setting: ${it.message}", viaShizuku = false)
+        val direct = hasDirectWriteAccess(context)
+
+        // ---- strategy 1: the sentinel, which also clears the proxy cached in system_server
+        val sentinel = clearWith(context, direct, ClearStrategy.SENTINEL_THEN_DELETE)
+        if (sentinel.success && sentinel.frameworkReacted) {
+            logD("Proxy disabled via the ${ClearStrategy.SENTINEL_THEN_DELETE.label} strategy")
+            return Result(true, "Proxy disabled", viaShizuku = !direct)
+        }
+        if (!sentinel.success) {
+            // The settings could not be written at all; the fallback writes the same settings, so
+            // there is nothing left to try.
+            logE("Could not clear the proxy settings: ${sentinel.message}")
+            return Result(false, sentinel.message, viaShizuku = !direct)
+        }
+
+        // ---- strategy 2: fall back to plain deletion
+        logE(
+            "system_server did not acknowledge '${CLEAR_PROXY_VALUE}', falling back to the " +
+                "${ClearStrategy.DELETE_ONLY.label} strategy"
+        )
+        val deleteOnly = clearWith(context, direct, ClearStrategy.DELETE_ONLY)
+        return when {
+            !deleteOnly.success ->
+                Result(false, deleteOnly.message, viaShizuku = !direct)
+
+            else -> Result(
+                true,
+                "Proxy disabled, but this device ignored the change. " +
+                    "Tick \"Reboot the watch afterwards\" if traffic still goes through the proxy.",
+                viaShizuku = !direct
+            )
+        }
+    }
+
+    /** Runs one [strategy], on whichever privileged path is available. Never throws. */
+    private suspend fun clearWith(
+        context: Context,
+        direct: Boolean,
+        strategy: ClearStrategy
+    ): ClearOutcome = try {
+        if (direct) clearDirect(context, strategy) else clearViaShizuku(strategy)
+    } catch (e: ShizukuUnavailableException) {
+        ClearOutcome(false, false, e.message ?: "Shizuku is not available")
+    } catch (e: Exception) {
+        logE("Clearing the proxy failed (${strategy.label})", e)
+        ClearOutcome(false, false, "Unexpected error: ${e.message}")
+    }
+
+    /** Direct path: the app itself holds `WRITE_SECURE_SETTINGS`. */
+    private suspend fun clearDirect(context: Context, strategy: ClearStrategy): ClearOutcome {
+        val resolver = context.contentResolver
+        var frameworkReacted = false
+
+        if (strategy == ClearStrategy.SENTINEL_THEN_DELETE) {
+            Settings.Global.putString(resolver, KEY_HTTP_PROXY, CLEAR_PROXY_VALUE)
+            frameworkReacted = awaitFrameworkReaction {
+                // system_server writes "" here when it accepts the sentinel; a missing key reads
+                // back as null.
+                Settings.Global.getString(resolver, KEY_HOST) != null
             }
         }
 
-        return try {
-            val neutralise = ShizukuManager.exec(
+        ALL_PROXY_KEYS.forEach { Settings.Global.putString(resolver, it, null) }
+        return ClearOutcome(true, frameworkReacted, "")
+    }
+
+    /** Shizuku path: the same commands, executed with shell/root identity. */
+    private suspend fun clearViaShizuku(strategy: ClearStrategy): ClearOutcome {
+        var frameworkReacted = false
+
+        if (strategy == ClearStrategy.SENTINEL_THEN_DELETE) {
+            val sentinel = ShizukuManager.exec(
                 "settings put global $KEY_HTTP_PROXY $CLEAR_PROXY_VALUE"
             )
-            if (!neutralise.isSuccess) {
-                return Result(
+            if (!sentinel.isSuccess) {
+                return ClearOutcome(
                     false,
-                    "Could not disable the proxy (exit ${neutralise.exitCode}): ${neutralise.output}",
-                    viaShizuku = true
+                    false,
+                    "Could not disable the proxy (exit ${sentinel.exitCode}): ${sentinel.output}"
                 )
             }
-
-            delay(SETTLE_MS)
-
-            val deleteScript = ALL_PROXY_KEYS
-                .joinToString(separator = "; ") { "settings delete global $it" } + "; true"
-            val cleanup = ShizukuManager.exec(deleteScript)
-            if (cleanup.isSuccess) {
-                Result(true, "Proxy disabled", viaShizuku = true)
-            } else {
-                Result(
-                    false,
-                    "Proxy was switched off but could not be cleaned up (exit ${cleanup.exitCode}): ${cleanup.output}",
-                    viaShizuku = true
-                )
+            frameworkReacted = awaitFrameworkReaction {
+                // `settings get` prints "null" for a key that does not exist and an empty line for
+                // one that exists but is empty.
+                ShizukuManager.exec("settings get global $KEY_HOST").output.trim() != "null"
             }
-        } catch (e: ShizukuUnavailableException) {
-            Result(false, e.message ?: "Shizuku is not available", viaShizuku = true)
-        } catch (e: Exception) {
-            logE("Disabling the proxy failed", e)
-            Result(false, "Unexpected error: ${e.message}", viaShizuku = true)
         }
+
+        val deleteScript = ALL_PROXY_KEYS
+            .joinToString(separator = "; ") { "settings delete global $it" } + "; true"
+        val cleanup = ShizukuManager.exec(deleteScript)
+        return if (cleanup.isSuccess) {
+            ClearOutcome(true, frameworkReacted, "")
+        } else {
+            ClearOutcome(
+                false,
+                false,
+                "Could not clean up the proxy settings (exit ${cleanup.exitCode}): ${cleanup.output}"
+            )
+        }
+    }
+
+    /**
+     * Polls until [check] reports that system_server handled the settings change.
+     *
+     * This is a real end-to-end check, not just a read-back of our own write: the only way
+     * `global_http_proxy_host` can become an *empty* (rather than missing) key is
+     * `ProxyTracker.setGlobalProxy()` writing it, which is the same code path that nulls the
+     * cached `mGlobalProxy` and broadcasts `Proxy.PROXY_CHANGE_ACTION`.
+     *
+     * The first wait is longer because `ContentObserver` notifications are coalesced and may be
+     * delivered a moment after the write returns.
+     */
+    private suspend fun awaitFrameworkReaction(check: suspend () -> Boolean): Boolean {
+        repeat(VERIFY_ATTEMPTS) { attempt ->
+            delay(if (attempt == 0) SETTLE_MS else VERIFY_INTERVAL_MS)
+            if (check()) return true
+        }
+        return false
     }
 
     /** Reboots the watch. Ignored when the caller has no privileged access. */
