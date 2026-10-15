@@ -12,9 +12,9 @@ android {
         applicationId "nl.jolanrensen.permanentproxy"
         minSdk 24
         targetSdk 34
-        // CI overrides these from the pushed tag, e.g. -PversionNameOverride=5.0.0
-        versionCode(project.findProperty('versionCodeOverride')?.toString()?.toInteger() ?: 17)
-        versionName(project.findProperty('versionNameOverride')?.toString() ?: "5.0.0")
+        // CI overrides these from the pushed tag, e.g. -PversionNameOverride=5.0.1
+        versionCode(project.findProperty('versionCodeOverride')?.toString()?.toInteger() ?: 18)
+        versionName(project.findProperty('versionNameOverride')?.toString() ?: "5.0.1")
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 

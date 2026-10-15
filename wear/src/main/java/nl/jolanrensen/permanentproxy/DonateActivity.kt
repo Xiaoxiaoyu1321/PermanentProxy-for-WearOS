@@ -1,5 +1,6 @@
 package nl.jolanrensen.permanentproxy
 
+import android.content.Intent
 import android.os.Bundle
 import android.widget.TextView
 import androidx.activity.ComponentActivity
@@ -40,6 +41,12 @@ class DonateActivity : ComponentActivity() {
             getString(R.string._dollar, biggestThankYou.toString())
         findViewById<android.view.View>(R.id.biggest_thank_you_card).setOnClickListener {
             launchUrlOnPhone(getPaypalLink(biggestThankYou))
+        }
+
+        // Entry point to the attribution screen. The donation options above are the original
+        // author's and are deliberately left untouched.
+        findViewById<TextView>(R.id.donate_about).setOnClickListener {
+            startActivity(Intent(this, AboutActivity::class.java))
         }
     }
 }

@@ -205,11 +205,22 @@
                 android:id="@+id/old_watch"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="64dp"
+                android:layout_marginBottom="8dp"
                 android:background="?android:attr/selectableItemBackground"
                 android:gravity="center_vertical"
                 android:minHeight="45dp"
                 android:text="@string/manual_setup"
+                android:textAppearance="@android:style/TextAppearance.Material.Body1" />
+
+            <TextView
+                android:id="@+id/about"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="64dp"
+                android:background="?android:attr/selectableItemBackground"
+                android:gravity="center_vertical"
+                android:minHeight="45dp"
+                android:text="@string/about"
                 android:textAppearance="@android:style/TextAppearance.Material.Body1" />
         </LinearLayout>
 

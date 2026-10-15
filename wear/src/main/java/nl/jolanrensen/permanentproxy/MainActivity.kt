@@ -87,6 +87,10 @@ class MainActivity : ComponentActivity() {
             startActivity(Intent(this, AdbFallbackActivity::class.java))
         }
 
+        findViewById<TextView>(R.id.about).setOnClickListener {
+            startActivity(Intent(this, AboutActivity::class.java))
+        }
+
         findViewById<ScrollView>(R.id.scroll_view).requestFocus()
 
         refresh()

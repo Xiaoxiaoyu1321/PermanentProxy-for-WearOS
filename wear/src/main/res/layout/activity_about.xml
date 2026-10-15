@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.wear.widget.BoxInsetLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/black"
+    android:padding="@dimen/box_inset_layout_padding"
+    tools:context=".AboutActivity"
+    tools:deviceIds="wear">
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/about_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:gravity="center_horizontal"
+                android:text="@string/about_title"
+                android:textAppearance="@android:style/TextAppearance.Material.Medium"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/about_version"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:gravity="center_horizontal"
+                android:text="@string/loading"
+                android:textAppearance="@android:style/TextAppearance.Material.Body1" />
+
+            <TextView
+                android:id="@+id/about_original_author"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:background="?android:attr/selectableItemBackground"
+                android:gravity="center"
+                android:minHeight="45dp"
+                android:text="@string/about_original_author"
+                android:textAppearance="@android:style/TextAppearance.Material.Body1" />
+
+            <TextView
+                android:id="@+id/about_maintainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:background="?android:attr/selectableItemBackground"
+                android:gravity="center"
+                android:minHeight="45dp"
+                android:text="@string/about_maintainer"
+                android:textAppearance="@android:style/TextAppearance.Material.Body1" />
+
+            <TextView
+                android:id="@+id/about_shizuku"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:background="?android:attr/selectableItemBackground"
+                android:gravity="center"
+                android:minHeight="45dp"
+                android:text="@string/about_shizuku"
+                android:textAppearance="@android:style/TextAppearance.Material.Body1" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="8dp"
+                android:background="@color/grey" />
+
+            <TextView
+                android:id="@+id/about_credits"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:text="@string/about_credits"
+                android:textAppearance="@android:style/TextAppearance.Material.Body1" />
+
+            <TextView
+                android:id="@+id/about_close"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="45dp"
+                android:background="?android:attr/selectableItemBackground"
+                android:gravity="center"
+                android:minHeight="45dp"
+                android:text="@string/close"
+                android:textAppearance="@android:style/TextAppearance.Material.Body1" />
+
+        </LinearLayout>
+
+    </ScrollView>
+</androidx.wear.widget.BoxInsetLayout>

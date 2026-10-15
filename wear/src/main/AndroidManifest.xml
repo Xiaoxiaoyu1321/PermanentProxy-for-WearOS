@@ -59,6 +59,10 @@
             android:label="@string/title_activity_shizuku_setup"
             android:exported="false" />
         <activity
+            android:name=".AboutActivity"
+            android:label="@string/title_activity_about"
+            android:exported="false" />
+        <activity
             android:name=".MainActivity"
             android:label="@string/app_name"
             android:exported="true">

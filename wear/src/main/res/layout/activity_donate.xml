@@ -271,6 +271,37 @@
                 android:layout_margin="16dp"
                 android:text="@string/donating" />
 
+            <!-- Credits. The donation options above belong to the original author and are kept as-is. -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginStart="16dp"
+                android:layout_marginEnd="16dp"
+                android:layout_marginBottom="8dp"
+                android:background="@color/grey" />
+
+            <TextView
+                android:id="@+id/donate_credits"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginEnd="16dp"
+                android:layout_marginBottom="8dp"
+                android:text="@string/donate_credits"
+                android:textAlignment="center" />
+
+            <TextView
+                android:id="@+id/donate_about"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginEnd="16dp"
+                android:background="?android:attr/selectableItemBackground"
+                android:gravity="center"
+                android:minHeight="45dp"
+                android:text="@string/about"
+                android:textAppearance="@android:style/TextAppearance.Material.Body1" />
+
             <View
                 android:layout_width="match_parent"
                 android:layout_marginBottom="45dp"
