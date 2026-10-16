@@ -14,9 +14,9 @@ android {
         // Wear OS 2.0 (the oldest supported Wear version) is API 25, so nothing is lost.
         minSdk 24
         targetSdk 34
-        // CI overrides these from the pushed tag, e.g. -PversionNameOverride=5.0.1
-        versionCode(project.findProperty('versionCodeOverride')?.toString()?.toInteger() ?: 18)
-        versionName(project.findProperty('versionNameOverride')?.toString() ?: "5.0.1")
+        // CI overrides these from the pushed tag, e.g. -PversionNameOverride=5.0.2
+        versionCode(project.findProperty('versionCodeOverride')?.toString()?.toInteger() ?: 19)
+        versionName(project.findProperty('versionNameOverride')?.toString() ?: "5.0.2")
     }
 
     buildFeatures {

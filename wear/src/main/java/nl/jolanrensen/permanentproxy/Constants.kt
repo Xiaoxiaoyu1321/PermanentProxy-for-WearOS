@@ -12,10 +12,11 @@ import androidx.wear.activity.ConfirmationActivity
 import androidx.wear.activity.ConfirmationActivity.EXTRA_ANIMATION_TYPE
 import androidx.wear.activity.ConfirmationActivity.OPEN_ON_PHONE_ANIMATION
 import androidx.wear.remote.interactions.RemoteActivityHelper
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import org.json.JSONObject
 import java.net.URL
 
@@ -30,6 +31,16 @@ object Constants {
     const val SHIZUKU_PACKAGE = "moe.shizuku.privileged.api"
 
     const val APP_PACKAGE = "nl.jolanrensen.permanentproxy"
+
+    /** How long the external-IP lookup may take before the UI falls back to "N/A". */
+    private const val IP_TIMEOUT_MS = 20_000L
+
+    /**
+     * Own scope instead of `GlobalScope`: this object lives for the whole process, and the
+     * external-IP lookup must not be cancelled when the activity that asked for it goes away.
+     * `GlobalScope` is a delicate API and produces a compiler warning.
+     */
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     fun logD(message: String) = Log.d(LOGTAG, message)
     fun logI(message: String) = Log.i(LOGTAG, message)
@@ -60,30 +71,20 @@ object Constants {
     /**
      * Reads the current external IP (and its country) so the user can verify that traffic really
      * goes through the proxy.
+     *
+     * [callback] is invoked exactly once, on a background thread, with `(null, null)` when the
+     * lookup fails or takes longer than [IP_TIMEOUT_MS].
      */
     fun getCurrentIP(callback: (ip: String?, countryCode: String?) -> Unit) {
-        val job = GlobalScope.launch(Dispatchers.IO) {
-            try {
-                val ip: String
-                callback(
-                    URL("https://api64.ipify.org")
-                        .readText()
-                        .also { ip = it },
-                    JSONObject(URL("http://ip-api.com/json/$ip").readText()).getString("countryCode")
-                )
-            } catch (e: Exception) {
-                logE("Could not determine the external IP", e)
-                callback(null, null)
+        scope.launch {
+            val result = withTimeoutOrNull(IP_TIMEOUT_MS) {
+                runCatching {
+                    val ip = URL("https://api64.ipify.org").readText()
+                    ip to JSONObject(URL("http://ip-api.com/json/$ip").readText())
+                        .getString("countryCode")
+                }.onFailure { logE("Could not determine the external IP", it) }.getOrNull()
             }
-        }
-
-        // Don't leave the UI stuck on "loading…" forever if the network is unreachable.
-        GlobalScope.launch {
-            delay(20_000)
-            if (job.isActive) {
-                job.cancel()
-                callback(null, null)
-            }
+            callback(result?.first, result?.second)
         }
     }
 
